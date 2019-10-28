@@ -26,23 +26,23 @@ FLAGS = flags.FLAGS
 
 
 flags.DEFINE_string(
-    "bert_config_file", "./chinese_L-12_H-768_A-12/bert_config.json",
+    "bert_config_file", "../chinese_L-12_H-768_A-12/bert_config.json",
     "The config json file corresponding to the pre-trained BERT model. "
     "This specifies the model architecture.")
 
 flags.DEFINE_string("task_name", "task3", "The name of the task to train.")
 
-flags.DEFINE_string("vocab_file", "./chinese_L-12_H-768_A-12/vocab.txt",
+flags.DEFINE_string("vocab_file", "../chinese_L-12_H-768_A-12/vocab.txt",
                     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_string(
-    "output_dir", "./modelweight/",
+    "output_dir", "../tmp/task3_epoch10_x/",
     "The output directory where the model checkpoints will be written.")
 
 ## Other parameters
 
 flags.DEFINE_string(
-    "init_checkpoint", "./modelweight/",
+    "init_checkpoint", "../tmp/task3_epoch10_x/",
     "Initial checkpoint (usually from a pre-trained BERT model).")
 
 flags.DEFINE_bool(
@@ -357,6 +357,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training,
 
 def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
                  labels, num_labels, use_one_hot_embeddings):
+    """Creates a classification model."""
     model = modeling.BertModel(
         config=bert_config,
         is_training=is_training,
@@ -365,7 +366,7 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
         token_type_ids=segment_ids,
         use_one_hot_embeddings=use_one_hot_embeddings)
 
-    output_layer =  model.get_sequence_output()
+    output_layer = model.get_sequence_output()
     output_layer = tf.keras.layers.GlobalAveragePooling1D()(output_layer)
     hidden_size = output_layer.shape[-1].value
 
@@ -435,14 +436,6 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 scaffold_fn = tpu_scaffold
             else:
                 tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
-
-        # tf.logging.info("**** Trainable Variables ****")
-        # for var in tvars:
-        #   init_string = ""
-        #   if var.name in initialized_variable_names:
-        #     init_string = ", *INIT_FROM_CKPT*"
-        #   tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape,
-        #                   init_string)
 
         output_spec = None
         if mode == tf.estimator.ModeKeys.TRAIN:
@@ -638,19 +631,8 @@ def main(_):
             drop_remainder=predict_drop_remainder)
 
         result = estimator.predict(input_fn=predict_input_fn)
-
         test_id = processor.test_dataframe(FLAGS.test_path)
 
-        # with tf.gfile.Open(FLAGS.test_path, "r") as f:
-        #   reader = csv.reader(f, delimiter="\t")
-        # lines=[]
-        # for i,line in enumerate(reader):
-        #     if i==0:
-        #         continue
-        #     else:
-        #         lines.append(line[0])
-        #
-        #
         predicion = []
         for lines in result:
             probabilities = lines["probabilities"][0]
@@ -665,22 +647,6 @@ def main(_):
             print(line, file=ouf)
         ouf.close()
 
-        # output_predict_file = os.path.join(FLAGS.output_dir, "test_results.csv")
-        # with tf.gfile.GFile(output_predict_file, "w") as writer:
-        #   num_written_lines = 0
-        #   tf.logging.info("***** Predict results *****")
-        #   for prediction,line in zip(result,lines):
-        #     probabilities = prediction["probabilities"]
-        #     # if i[0] >= num_actual_predict_examples:
-        #     #   break
-        #     output_line = line + "\t" + "\t".join(
-        #         str(class_probability)
-        #         for class_probability in probabilities) + "\n"
-        #
-        #     writer.write(output_line)
-        # num_written_lines += 1
-        # assert num_written_lines == num_actual_predict_examples
-
 
 if __name__ == "__main__":
     flags.mark_flag_as_required("task_name")
@@ -688,141 +654,3 @@ if __name__ == "__main__":
     flags.mark_flag_as_required("bert_config_file")
     flags.mark_flag_as_required("output_dir")
     tf.app.run()
-
-"""
-export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
-python main.py \
-  --task_name=task3 \
-  --do_train=true \
-  --train_path=../input/SCM_5k.json \
-  --do_eval=true \
-  --eval_path=../input/SCM_5k.json \
-  --do_predict=False \
-  --test_path=../data/test.csv \
-  --vocab_file=$BERT_BASE_DIR/vocab.txt \
-  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
-  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
-  --save_checkpoints_steps=10000000 \
-  --max_seq_length=500 \
-  --train_batch_size=6 \
-  --eval_batch_size=6 \
-  --predict_batch_size=6 \
-  --learning_rate=2e-5 \
-  --num_train_epochs=10.0 \
-  --output_dir=../tmp/big_data_epochs_10_lr2e-5/
-
-
-export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
-
-python main.py \
-  --task_name=task3 \
-  --do_train=true \
-  --train_path=../input/SCM_5k.json \
-  --do_eval=true \
-  --eval_path=../input/SCM_5k.json \
-  --do_predict=False \
-  --test_path=../data/test.csv \
-  --vocab_file=$BERT_BASE_DIR/vocab.txt \
-  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
-  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
-  --save_checkpoints_steps=10000000 \
-  --max_seq_length=500 \
-  --train_batch_size=6 \
-  --eval_batch_size=6 \
-  --predict_batch_size=6 \
-  --learning_rate=2e-5 \
-  --num_train_epochs=10.0 \
-  --output_dir=../tmp/big_data_maxpoolig_epochs_10_lr2e-5/
-
-
-export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
-CUDA_VISIBLE_DEVICES=0 python main.py \
-  --task_name=task3 \
-  --do_train=True \
-  --train_path=../input/SCM_5k.json \
-  --do_eval=False \
-  --eval_path=../input/SCM_5k.json \
-  --do_predict=False \
-  --test_path=../data/test.csv \
-  --vocab_file=$BERT_BASE_DIR/vocab.txt \
-  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
-  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
-  --save_checkpoints_steps=10000000 \
-  --max_seq_length=512 \
-  --train_batch_size=16 \
-  --eval_batch_size=6 \
-  --predict_batch_size=6 \
-  --learning_rate=2e-5 \
-  --num_train_epochs=10.0 \
-  --output_dir=../tmp/big_data_avg_epochs_10_lr2e-5/
-
-
-export BERT_BASE_DIR=./law
-CUDA_VISIBLE_DEVICES=0 python main.py \
-  --task_name=task3 \
-  --do_train=True \
-  --train_path=../input/SCM_5k.json \
-  --do_eval=False \
-  --eval_path=../input/SCM_5k.json \
-  --do_predict=False \
-  --test_path=../data/test.csv \
-  --vocab_file=$BERT_BASE_DIR/vocab.txt \
-  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
-  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
-  --save_checkpoints_steps=10000000 \
-  --max_seq_length=512 \
-  --train_batch_size=16 \
-  --eval_batch_size=6 \
-  --predict_batch_size=6 \
-  --learning_rate=2e-5 \
-  --num_train_epochs=10.0 \
-  --output_dir=../tmp/big_data_avg_epochs_10_lr2e-5_law/
-  
-  
-  
-  
-
-export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
-CUDA_VISIBLE_DEVICES=0 python main.py \
-  --task_name=task3 \
-  --do_train=True \
-  --train_path=../input/SCM_5k.json \
-  --do_eval=False \
-  --eval_path=../input/SCM_5k.json \
-  --do_predict=False \
-  --test_path=../data/test.csv \
-  --vocab_file=$BERT_BASE_DIR/vocab.txt \
-  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
-  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
-  --save_checkpoints_steps=10000000 \
-  --max_seq_length=512 \
-  --train_batch_size=16 \
-  --eval_batch_size=6 \
-  --predict_batch_size=6 \
-  --learning_rate=2e-5 \
-  --num_train_epochs=15.0 \
-  --output_dir=../tmp/big_data_avg_epochs_15_lr2e-5/
-  
-  
-export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
-CUDA_VISIBLE_DEVICES=0 python main.py \
-  --task_name=task3 \
-  --do_train=True \
-  --train_path=../input/SCM_5k.json \
-  --do_eval=False \
-  --eval_path=../input/SCM_5k.json \
-  --do_predict=False \
-  --test_path=../data/test.csv \
-  --vocab_file=$BERT_BASE_DIR/vocab.txt \
-  --bert_config_file=$BERT_BASE_DIR/bert_config.json \
-  --init_checkpoint=$BERT_BASE_DIR/bert_model.ckpt \
-  --save_checkpoints_steps=10000000 \
-  --max_seq_length=512 \
-  --train_batch_size=16 \
-  --eval_batch_size=6 \
-  --predict_batch_size=6 \
-  --learning_rate=2e-5 \
-  --num_train_epochs=10.0 \
-  --output_dir=../tmp/big_data_pool_epochs_10_lr2e-5/
-  
-"""
