@@ -4,7 +4,7 @@
 
 # 运行
 
-''' shell
+`` shell
 export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
 CUDA_VISIBLE_DEVICES=0 python main.py \
   --task_name=task3 \
@@ -25,4 +25,4 @@ CUDA_VISIBLE_DEVICES=0 python main.py \
   --learning_rate=2e-5 \
   --num_train_epochs=10.0 \
   --output_dir=../tmp/big_data_avg_epochs_10_lr2e-5/
-  '''
+```
