@@ -5,7 +5,7 @@
 # 运行
 
 ``` shell
-export BERT_BASE_DIR=./chinese_L-12_H-768_A-12
+export BERT_BASE_DIR=../chinese_L-12_H-768_A-12
 CUDA_VISIBLE_DEVICES=0 python main.py \
   --task_name=task3 \
   --do_train=True \
